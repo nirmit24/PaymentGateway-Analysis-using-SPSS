@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Report: International Payment Gateway Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals with a Subtle Teal Accent -->
+    <!-- Application Structure Plan: A dashboard-style SPA is chosen for its effectiveness in presenting key metrics and allowing for interactive data exploration. The structure includes a main filter bar for slicing data by Industry and Country, KPI cards for at-a-glance insights, and thematic sections for deep dives into Performance, Market Trends, and Fee Structures. This non-linear structure empowers users to explore the data based on their own questions, which is more intuitive than following a static report format. The user flow is designed for discovery: see the overview, filter to a specific context, then explore detailed charts. -->
+    <!-- Visualization & Content Choices: 
+        - KPI Cards: Goal: Inform. Method: HTML/CSS. Interaction: Dynamic text updates. Justification: Provides immediate, high-level summaries.
+        - Avg. Fee/Settlement/Satisfaction Charts: Goal: Compare. Method: Bar Chart (Chart.js). Interaction: Tooltips on hover. Justification: Bar charts are excellent for direct comparison of mean values across categories.
+        - Market Trend Charts: Goal: Organize/Compare. Method: Stacked Bar Chart (Chart.js). Interaction: Tooltips. Justification: Shows composition and market share within industries/countries effectively.
+        - Fee Structure Chart: Goal: Relationships. Method: Scatter Plot (Chart.js). Interaction: Tooltips. Justification: A scatter plot is the standard and most effective way to visualize the relationship between two continuous variables.
+        - Library/Method: All charts use Chart.js on a Canvas element. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fdfaf7;
+            color: #3f3c3a;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            max-height: 400px;
+        }
+        .kpi-card {
+            background-color: #ffffff;
+            border: 1px solid #e7e5e4;
+            transition: all 0.3s ease;
+        }
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .filter-select {
+            background-color: #ffffff;
+            border: 1px solid #e7e5e4;
+        }
+    </style>
+</head>
+<body class="antialiased">
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-teal-800">Comparative Analysis of International Payment Gateways</h1>
+            <p class="mt-2 text-lg text-gray-600">An Interactive Dashboard for Indian Businesses</p>
+        </header>
+
+        <main>
+            <section id="filters" class="mb-8 p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                    <h2 class="text-xl font-semibold text-gray-800 md:col-span-3">Explore the Data</h2>
+                    <div>
+                        <label for="industryFilter" class="block text-sm font-medium text-gray-700 mb-1">Filter by Industry</label>
+                        <select id="industryFilter" class="filter-select w-full p-2 rounded-lg">
+                            <option value="all">All Industries</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="countryFilter" class="block text-sm font-medium text-gray-700 mb-1">Filter by Country of Origin</label>
+                        <select id="countryFilter" class="filter-select w-full p-2 rounded-lg">
+                            <option value="all">All Countries</option>
+                        </select>
+                    </div>
+                     <div>
+                        <button id="resetFilters" class="w-full bg-teal-600 text-white p-2 rounded-lg hover:bg-teal-700 transition-colors">Reset Filters</button>
+                    </div>
+                </div>
+            </section>
+
+            <section id="kpi-overview" class="mb-8">
+                 <div class="text-left mb-4">
+                    <h2 class="text-2xl font-semibold text-gray-800">Performance at a Glance</h2>
+                    <p class="mt-1 text-gray-600">This section provides a high-level summary of the best-performing payment gateways based on key metrics. The values will update dynamically as you apply filters above, offering quick insights into which gateway leads in cost, speed, and satisfaction for your specific business context.</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="kpi-card p-6 rounded-xl text-center">
+                        <h3 class="text-lg font-semibold text-gray-500">Lowest Avg. Transaction Fee</h3>
+                        <p id="kpiLowestFee" class="text-3xl font-bold text-teal-700 mt-2">-</p>
+                    </div>
+                    <div class="kpi-card p-6 rounded-xl text-center">
+                        <h3 class="text-lg font-semibold text-gray-500">Fastest Avg. Settlement</h3>
+                        <p id="kpiFastestSettlement" class="text-3xl font-bold text-teal-700 mt-2">-</p>
+                    </div>
+                    <div class="kpi-card p-6 rounded-xl text-center">
+                        <h3 class="text-lg font-semibold text-gray-500">Highest Avg. Satisfaction</h3>
+                        <p id="kpiHighestSatisfaction" class="text-3xl font-bold text-teal-700 mt-2">-</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="performance-deep-dive" class="mb-8">
+                <div class="text-left mb-6">
+                    <h2 class="text-2xl font-semibold text-gray-800">Gateway Performance Deep Dive</h2>
+                    <p class="mt-1 text-gray-600">Here, we compare the gateways across three critical performance indicators. Use these charts to understand the trade-offs between lower costs, faster access to funds, and better customer experiences. Each chart provides a direct comparison to help you make an informed decision.</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold mb-4 text-center">Average Transaction Fee (INR)</h3>
+                        <div class="chart-container"><canvas id="feeChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold mb-4 text-center">Average Settlement Time (Days)</h3>
+                        <div class="chart-container"><canvas id="settlementChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold mb-4 text-center">Average Customer Satisfaction (1-5)</h3>
+                        <div class="chart-container"><canvas id="satisfactionChart"></canvas></div>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="market-trends" class="mb-8">
+                <div class="text-left mb-6">
+                    <h2 class="text-2xl font-semibold text-gray-800">Market & Industry Trends</h2>
+                    <p class="mt-1 text-gray-600">This section explores the popularity of each payment gateway within different industries and for payments originating from various countries. These visualizations can help you understand market standards and which gateways are most commonly used by businesses similar to yours or by your international clients.</p>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold mb-4 text-center">Gateway Usage by Industry</h3>
+                        <div class="chart-container"><canvas id="industryChart"></canvas></div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold mb-4 text-center">Gateway Usage by Country of Origin</h3>
+                        <div class="chart-container"><canvas id="countryChart"></canvas></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="fee-structure">
+                 <div class="text-left mb-6">
+                    <h2 class="text-2xl font-semibold text-gray-800">Fee Structure Analysis</h2>
+                    <p class="mt-1 text-gray-600">This scatter plot visualizes the relationship between the transaction amount and the associated fee. It helps answer the question: "How do fees scale with the size of the payment?" Use this to assess whether a gateway's fee structure is favorable for the typical size of your international transactions.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h3 class="text-lg font-semibold mb-4 text-center">Transaction Amount vs. Transaction Fee</h3>
+                    <div class="chart-container"><canvas id="correlationChart"></canvas></div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="text-center mt-12 pt-8 border-t border-gray-200">
+            <p class="text-gray-500">Generated Interactive Report | Data-driven insights for modern business.</p>
+        </footer>
+    </div>
+
+    <script>
+        const rawData = [
+            {CompanyName: "InnovateTech Solutions", Industry: "IT Services", CountryOfOrigin: "USA", PaymentGateway: "Stripe", TransactionAmountINR: 250000, TransactionFeeINR: 7500, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "Global Exports", Industry: "Manufacturing", CountryOfOrigin: "UK", PaymentGateway: "Wise", TransactionAmountINR: 450000, TransactionFeeINR: 4500, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "DigitalLearnings", Industry: "Education", CountryOfOrigin: "Australia", PaymentGateway: "PayPal", TransactionAmountINR: 50000, TransactionFeeINR: 2250, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "TravelInStyle", Industry: "Tourism", CountryOfOrigin: "USA", PaymentGateway: "Razorpay", TransactionAmountINR: 120000, TransactionFeeINR: 2400, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "CraftsOfIndia", Industry: "E-commerce", CountryOfOrigin: "UK", PaymentGateway: "Stripe", TransactionAmountINR: 30000, TransactionFeeINR: 1200, SettlementTimeDays: 4, CustomerSatisfaction: 5},
+            {CompanyName: "CodeGenius", Industry: "IT Services", CountryOfOrigin: "Singapore", PaymentGateway: "Payoneer", TransactionAmountINR: 300000, TransactionFeeINR: 6000, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "AutoParts India", Industry: "Manufacturing", CountryOfOrigin: "UAE", PaymentGateway: "Wise", TransactionAmountINR: 500000, TransactionFeeINR: 5000, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "MedSkills Academy", Industry: "Education", CountryOfOrigin: "USA", PaymentGateway: "PayPal", TransactionAmountINR: 75000, TransactionFeeINR: 3375, SettlementTimeDays: 1, CustomerSatisfaction: 2},
+            {CompanyName: "Himalayan Adventures", Industry: "Tourism", CountryOfOrigin: "Australia", PaymentGateway: "Razorpay", TransactionAmountINR: 150000, TransactionFeeINR: 3000, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "The Sari Store", Industry: "E-commerce", CountryOfOrigin: "Singapore", PaymentGateway: "Stripe", TransactionAmountINR: 45000, TransactionFeeINR: 1800, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "DataWizards", Industry: "IT Services", CountryOfOrigin: "USA", PaymentGateway: "Payoneer", TransactionAmountINR: 400000, TransactionFeeINR: 8000, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "SteelBeams Ltd.", Industry: "Manufacturing", CountryOfOrigin: "UAE", PaymentGateway: "Wise", TransactionAmountINR: 750000, TransactionFeeINR: 7500, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "GlobalTutors", Industry: "Education", CountryOfOrigin: "UK", PaymentGateway: "PayPal", TransactionAmountINR: 60000, TransactionFeeINR: 2700, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "Goa Getaways", Industry: "Tourism", CountryOfOrigin: "USA", PaymentGateway: "Razorpay", TransactionAmountINR: 180000, TransactionFeeINR: 3600, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "SpiceBox", Industry: "E-commerce", CountryOfOrigin: "Australia", PaymentGateway: "Stripe", TransactionAmountINR: 25000, TransactionFeeINR: 1000, SettlementTimeDays: 4, CustomerSatisfaction: 5},
+            {CompanyName: "CodeCrafters", Industry: "IT Services", CountryOfOrigin: "Singapore", PaymentGateway: "Payoneer", TransactionAmountINR: 320000, TransactionFeeINR: 6400, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "LeatherGoods Inc.", Industry: "Manufacturing", CountryOfOrigin: "UK", PaymentGateway: "Wise", TransactionAmountINR: 600000, TransactionFeeINR: 6000, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "FutureProdigy", Industry: "Education", CountryOfOrigin: "USA", PaymentGateway: "PayPal", TransactionAmountINR: 80000, TransactionFeeINR: 3600, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "ExploreAndaman", Industry: "Tourism", CountryOfOrigin: "UAE", PaymentGateway: "Razorpay", TransactionAmountINR: 200000, TransactionFeeINR: 4000, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "EthnicElegance", Industry: "E-commerce", CountryOfOrigin: "USA", PaymentGateway: "Stripe", TransactionAmountINR: 55000, TransactionFeeINR: 2200, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "WebAppWonders", Industry: "IT Services", CountryOfOrigin: "Australia", PaymentGateway: "Payoneer", TransactionAmountINR: 280000, TransactionFeeINR: 5600, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "PrecisionParts", Industry: "Manufacturing", CountryOfOrigin: "Singapore", PaymentGateway: "Wise", TransactionAmountINR: 480000, TransactionFeeINR: 4800, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "LearnFromHome", Industry: "Education", CountryOfOrigin: "UAE", PaymentGateway: "PayPal", TransactionAmountINR: 40000, TransactionFeeINR: 1800, SettlementTimeDays: 1, CustomerSatisfaction: 2},
+            {CompanyName: "JaipurJourneys", Industry: "Tourism", CountryOfOrigin: "UK", PaymentGateway: "Razorpay", TransactionAmountINR: 130000, TransactionFeeINR: 2600, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "HandmadeHaven", Industry: "E-commerce", CountryOfOrigin: "Australia", PaymentGateway: "Stripe", TransactionAmountINR: 32000, TransactionFeeINR: 1280, SettlementTimeDays: 4, CustomerSatisfaction: 5},
+            {CompanyName: "CloudCompanions", Industry: "IT Services", CountryOfOrigin: "USA", PaymentGateway: "Payoneer", TransactionAmountINR: 350000, TransactionFeeINR: 7000, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "TextileTitans", Industry: "Manufacturing", CountryOfOrigin: "USA", PaymentGateway: "Wise", TransactionAmountINR: 800000, TransactionFeeINR: 8000, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "MasterMentors", Industry: "Education", CountryOfOrigin: "Singapore", PaymentGateway: "PayPal", TransactionAmountINR: 90000, TransactionFeeINR: 4050, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "KeralaCalling", Industry: "Tourism", CountryOfOrigin: "UK", PaymentGateway: "Razorpay", TransactionAmountINR: 160000, TransactionFeeINR: 3200, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "ArtisanAlley", Industry: "E-commerce", CountryOfOrigin: "UAE", PaymentGateway: "Stripe", TransactionAmountINR: 48000, TransactionFeeINR: 1920, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "ByteBusters", Industry: "IT Services", CountryOfOrigin: "Australia", PaymentGateway: "Payoneer", TransactionAmountINR: 290000, TransactionFeeINR: 5800, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "EngineExperts", Industry: "Manufacturing", CountryOfOrigin: "USA", PaymentGateway: "Wise", TransactionAmountINR: 650000, TransactionFeeINR: 6500, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "SkillSphere", Industry: "Education", CountryOfOrigin: "UK", PaymentGateway: "PayPal", TransactionAmountINR: 55000, TransactionFeeINR: 2475, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "MumbaiMagic", Industry: "Tourism", CountryOfOrigin: "Singapore", PaymentGateway: "Razorpay", TransactionAmountINR: 190000, TransactionFeeINR: 3800, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "DesiDesigns", Industry: "E-commerce", CountryOfOrigin: "USA", PaymentGateway: "Stripe", TransactionAmountINR: 60000, TransactionFeeINR: 2400, SettlementTimeDays: 4, CustomerSatisfaction: 5},
+            {CompanyName: "InnovateAI", Industry: "IT Services", CountryOfOrigin: "UAE", PaymentGateway: "Payoneer", TransactionAmountINR: 420000, TransactionFeeINR: 8400, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "MetalMakers", Industry: "Manufacturing", CountryOfOrigin: "Australia", PaymentGateway: "Wise", TransactionAmountINR: 700000, TransactionFeeINR: 7000, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "ProLearners", Industry: "Education", CountryOfOrigin: "USA", PaymentGateway: "PayPal", TransactionAmountINR: 70000, TransactionFeeINR: 3150, SettlementTimeDays: 1, CustomerSatisfaction: 2},
+            {CompanyName: "RajasthanRoyalty", Industry: "Tourism", CountryOfOrigin: "UAE", PaymentGateway: "Razorpay", TransactionAmountINR: 220000, TransactionFeeINR: 4400, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "CurioCart", Industry: "E-commerce", CountryOfOrigin: "UK", PaymentGateway: "Stripe", TransactionAmountINR: 38000, TransactionFeeINR: 1520, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "TechTitans", Industry: "IT Services", CountryOfOrigin: "USA", PaymentGateway: "Stripe", TransactionAmountINR: 280000, TransactionFeeINR: 8400, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "GlobalSteel", Industry: "Manufacturing", CountryOfOrigin: "UK", PaymentGateway: "Wise", TransactionAmountINR: 550000, TransactionFeeINR: 5500, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "EduExcellence", Industry: "Education", CountryOfOrigin: "Australia", PaymentGateway: "PayPal", TransactionAmountINR: 65000, TransactionFeeINR: 2925, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "DelhiDarshan", Industry: "Tourism", CountryOfOrigin: "USA", PaymentGateway: "Razorpay", TransactionAmountINR: 140000, TransactionFeeINR: 2800, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "IndoInnovations", Industry: "E-commerce", CountryOfOrigin: "Singapore", PaymentGateway: "Stripe", TransactionAmountINR: 42000, TransactionFeeINR: 1680, SettlementTimeDays: 4, CustomerSatisfaction: 5},
+            {CompanyName: "CodeCrushers", Industry: "IT Services", CountryOfOrigin: "Singapore", PaymentGateway: "Payoneer", TransactionAmountINR: 330000, TransactionFeeINR: 6600, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "AutoAces", Industry: "Manufacturing", CountryOfOrigin: "UAE", PaymentGateway: "Wise", TransactionAmountINR: 520000, TransactionFeeINR: 5200, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "BrightBeginnings", Industry: "Education", CountryOfOrigin: "USA", PaymentGateway: "PayPal", TransactionAmountINR: 85000, TransactionFeeINR: 3825, SettlementTimeDays: 1, CustomerSatisfaction: 2},
+            {CompanyName: "AgraAdventures", Industry: "Tourism", CountryOfOrigin: "Australia", PaymentGateway: "Razorpay", TransactionAmountINR: 170000, TransactionFeeINR: 3400, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "UrbanHaat", Industry: "E-commerce", CountryOfOrigin: "Singapore", PaymentGateway: "Stripe", TransactionAmountINR: 50000, TransactionFeeINR: 2000, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "DataDriven", Industry: "IT Services", CountryOfOrigin: "USA", PaymentGateway: "Payoneer", TransactionAmountINR: 380000, TransactionFeeINR: 7600, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "IronGiants", Industry: "Manufacturing", CountryOfOrigin: "UAE", PaymentGateway: "Wise", TransactionAmountINR: 780000, TransactionFeeINR: 7800, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "GlobalGrads", Industry: "Education", CountryOfOrigin: "UK", PaymentGateway: "PayPal", TransactionAmountINR: 72000, TransactionFeeINR: 3240, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "VaranasiVibes", Industry: "Tourism", CountryOfOrigin: "USA", PaymentGateway: "Razorpay", TransactionAmountINR: 210000, TransactionFeeINR: 4200, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "EthnicWeaves", Industry: "E-commerce", CountryOfOrigin: "Australia", PaymentGateway: "Stripe", TransactionAmountINR: 28000, TransactionFeeINR: 1120, SettlementTimeDays: 4, CustomerSatisfaction: 5},
+            {CompanyName: "WebWeavers", Industry: "IT Services", CountryOfOrigin: "Singapore", PaymentGateway: "Payoneer", TransactionAmountINR: 310000, TransactionFeeINR: 6200, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "PrecisionPartsPlus", Industry: "Manufacturing", CountryOfOrigin: "UK", PaymentGateway: "Wise", TransactionAmountINR: 620000, TransactionFeeINR: 6200, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "FutureMinds", Industry: "Education", CountryOfOrigin: "USA", PaymentGateway: "PayPal", TransactionAmountINR: 95000, TransactionFeeINR: 4275, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "ChennaiCharms", Industry: "Tourism", CountryOfOrigin: "UAE", PaymentGateway: "Razorpay", TransactionAmountINR: 230000, TransactionFeeINR: 4600, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "ModernMahal", Industry: "E-commerce", CountryOfOrigin: "USA", PaymentGateway: "Stripe", TransactionAmountINR: 65000, TransactionFeeINR: 2600, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "LogicLeap", Industry: "IT Services", CountryOfOrigin: "Australia", PaymentGateway: "Payoneer", TransactionAmountINR: 270000, TransactionFeeINR: 5400, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "SteelStallions", Industry: "Manufacturing", CountryOfOrigin: "Singapore", PaymentGateway: "Wise", TransactionAmountINR: 490000, TransactionFeeINR: 4900, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "TutorTrek", Industry: "Education", CountryOfOrigin: "UAE", PaymentGateway: "PayPal", TransactionAmountINR: 48000, TransactionFeeINR: 2160, SettlementTimeDays: 1, CustomerSatisfaction: 2},
+            {CompanyName: "KolkataChronicles", Industry: "Tourism", CountryOfOrigin: "UK", PaymentGateway: "Razorpay", TransactionAmountINR: 155000, TransactionFeeINR: 3100, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "Craftopia", Industry: "E-commerce", CountryOfOrigin: "Australia", PaymentGateway: "Stripe", TransactionAmountINR: 35000, TransactionFeeINR: 1400, SettlementTimeDays: 4, CustomerSatisfaction: 5},
+            {CompanyName: "CodeComrade", Industry: "IT Services", CountryOfOrigin: "USA", PaymentGateway: "Payoneer", TransactionAmountINR: 360000, TransactionFeeINR: 7200, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "MetalMoguls", Industry: "Manufacturing", CountryOfOrigin: "USA", PaymentGateway: "Wise", TransactionAmountINR: 820000, TransactionFeeINR: 8200, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "ScholarStream", Industry: "Education", CountryOfOrigin: "Singapore", PaymentGateway: "PayPal", TransactionAmountINR: 98000, TransactionFeeINR: 4410, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "HyderabadHues", Industry: "Tourism", CountryOfOrigin: "UK", PaymentGateway: "Razorpay", TransactionAmountINR: 185000, TransactionFeeINR: 3700, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "IndoArtistry", Industry: "E-commerce", CountryOfOrigin: "UAE", PaymentGateway: "Stripe", TransactionAmountINR: 52000, TransactionFeeINR: 2080, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "ByteBridge", Industry: "IT Services", CountryOfOrigin: "Australia", PaymentGateway: "Payoneer", TransactionAmountINR: 295000, TransactionFeeINR: 5900, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "EngineEagles", Industry: "Manufacturing", CountryOfOrigin: "USA", PaymentGateway: "Wise", TransactionAmountINR: 680000, TransactionFeeINR: 6800, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "LearnSphere", Industry: "Education", CountryOfOrigin: "UK", PaymentGateway: "PayPal", TransactionAmountINR: 68000, TransactionFeeINR: 3060, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "PunePleasures", Industry: "Tourism", CountryOfOrigin: "Singapore", PaymentGateway: "Razorpay", TransactionAmountINR: 205000, TransactionFeeINR: 4100, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "DesiDecor", Industry: "E-commerce", CountryOfOrigin: "USA", PaymentGateway: "Stripe", TransactionAmountINR: 70000, TransactionFeeINR: 2800, SettlementTimeDays: 4, CustomerSatisfaction: 5},
+            {CompanyName: "InnovateIQ", Industry: "IT Services", CountryOfOrigin: "UAE", PaymentGateway: "Payoneer", TransactionAmountINR: 430000, TransactionFeeINR: 8600, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "MetalMasters", Industry: "Manufacturing", CountryOfOrigin: "Australia", PaymentGateway: "Wise", TransactionAmountINR: 720000, TransactionFeeINR: 7200, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "ProdigyPath", Industry: "Education", CountryOfOrigin: "USA", PaymentGateway: "PayPal", TransactionAmountINR: 82000, TransactionFeeINR: 3690, SettlementTimeDays: 1, CustomerSatisfaction: 2},
+            {CompanyName: "BangaloreBites", Industry: "Tourism", CountryOfOrigin: "UAE", PaymentGateway: "Razorpay", TransactionAmountINR: 240000, TransactionFeeINR: 4800, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "CuratedCrafts", Industry: "E-commerce", CountryOfOrigin: "UK", PaymentGateway: "Stripe", TransactionAmountINR: 40000, TransactionFeeINR: 1600, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "TechieTribe", Industry: "IT Services", CountryOfOrigin: "USA", PaymentGateway: "Stripe", TransactionAmountINR: 290000, TransactionFeeINR: 8700, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "GlobalGears", Industry: "Manufacturing", CountryOfOrigin: "UK", PaymentGateway: "Wise", TransactionAmountINR: 580000, TransactionFeeINR: 5800, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "EduEvolve", Industry: "Education", CountryOfOrigin: "Australia", PaymentGateway: "PayPal", TransactionAmountINR: 78000, TransactionFeeINR: 3510, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "MysoreMoments", Industry: "Tourism", CountryOfOrigin: "USA", PaymentGateway: "Razorpay", TransactionAmountINR: 165000, TransactionFeeINR: 3300, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "IndiaInnovates", Industry: "E-commerce", CountryOfOrigin: "Singapore", PaymentGateway: "Stripe", TransactionAmountINR: 46000, TransactionFeeINR: 1840, SettlementTimeDays: 4, CustomerSatisfaction: 5},
+            {CompanyName: "CodeCatalyst", Industry: "IT Services", CountryOfOrigin: "Singapore", PaymentGateway: "Payoneer", TransactionAmountINR: 340000, TransactionFeeINR: 6800, SettlementTimeDays: 3, CustomerSatisfaction: 4},
+            {CompanyName: "AutoAvengers", Industry: "Manufacturing", CountryOfOrigin: "UAE", PaymentGateway: "Wise", TransactionAmountINR: 540000, TransactionFeeINR: 5400, SettlementTimeDays: 2, CustomerSatisfaction: 5},
+            {CompanyName: "BrightSparks", Industry: "Education", CountryOfOrigin: "USA", PaymentGateway: "PayPal", TransactionAmountINR: 92000, TransactionFeeINR: 4140, SettlementTimeDays: 1, CustomerSatisfaction: 2},
+            {CompanyName: "RishikeshRetreats", Industry: "Tourism", CountryOfOrigin: "Australia", PaymentGateway: "Razorpay", TransactionAmountINR: 195000, TransactionFeeINR: 3900, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "UrbanUtsav", Industry: "E-commerce", CountryOfOrigin: "Singapore", PaymentGateway: "Stripe", TransactionAmountINR: 58000, TransactionFeeINR: 2320, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "DataDynamos", Industry: "IT Services", CountryOfOrigin: "USA", PaymentGateway: "Payoneer", TransactionAmountINR: 390000, TransactionFeeINR: 7800, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "IronIcons", Industry: "Manufacturing", CountryOfOrigin: "UAE", PaymentGateway: "Wise", TransactionAmountINR: 790000, TransactionFeeINR: 7900, SettlementTimeDays: 3, CustomerSatisfaction: 5},
+            {CompanyName: "GlobalGurus", Industry: "Education", CountryOfOrigin: "UK", PaymentGateway: "PayPal", TransactionAmountINR: 88000, TransactionFeeINR: 3960, SettlementTimeDays: 1, CustomerSatisfaction: 3},
+            {CompanyName: "UdaipurUtopia", Industry: "Tourism", CountryOfOrigin: "USA", PaymentGateway: "Razorpay", TransactionAmountINR: 225000, TransactionFeeINR: 4500, SettlementTimeDays: 2, CustomerSatisfaction: 4},
+            {CompanyName: "EthnicEmporium", Industry: "E-commerce", CountryOfOrigin: "Australia", PaymentGateway: "Stripe", TransactionAmountINR: 33000, TransactionFeeINR: 1320, SettlementTimeDays: 4, CustomerSatisfaction: 5},
+        ];
+
+        let charts = {};
+        const gatewayColors = {
+            'Stripe': 'rgba(100, 102, 255, 0.8)',
+            'Wise': 'rgba(0, 186, 163, 0.8)',
+            'PayPal': 'rgba(0, 112, 186, 0.8)',
+            'Razorpay': 'rgba(2, 179, 228, 0.8)',
+            'Payoneer': 'rgba(255, 136, 0, 0.8)'
+        };
+        const gatewayBorderColors = {
+            'Stripe': 'rgba(100, 102, 255, 1)',
+            'Wise': 'rgba(0, 186, 163, 1)',
+            'PayPal': 'rgba(0, 112, 186, 1)',
+            'Razorpay': 'rgba(2, 179, 228, 1)',
+            'Payoneer': 'rgba(255, 136, 0, 1)'
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            populateFilters();
+            initializeCharts();
+            updateDashboard();
+
+            document.getElementById('industryFilter').addEventListener('change', updateDashboard);
+            document.getElementById('countryFilter').addEventListener('change', updateDashboard);
+            document.getElementById('resetFilters').addEventListener('click', () => {
+                document.getElementById('industryFilter').value = 'all';
+                document.getElementById('countryFilter').value = 'all';
+                updateDashboard();
+            });
+        });
+
+        function populateFilters() {
+            const industryFilter = document.getElementById('industryFilter');
+            const countryFilter = document.getElementById('countryFilter');
+            const industries = [...new Set(rawData.map(item => item.Industry))];
+            const countries = [...new Set(rawData.map(item => item.CountryOfOrigin))];
+
+            industries.sort().forEach(industry => {
+                const option = document.createElement('option');
+                option.value = industry;
+                option.textContent = industry;
+                industryFilter.appendChild(option);
+            });
+
+            countries.sort().forEach(country => {
+                const option = document.createElement('option');
+                option.value = country;
+                option.textContent = country;
+                countryFilter.appendChild(option);
+            });
+        }
+
+        function getFilteredData() {
+            const selectedIndustry = document.getElementById('industryFilter').value;
+            const selectedCountry = document.getElementById('countryFilter').value;
+
+            return rawData.filter(item => {
+                const industryMatch = selectedIndustry === 'all' || item.Industry === selectedIndustry;
+                const countryMatch = selectedCountry === 'all' || item.CountryOfOrigin === selectedCountry;
+                return industryMatch && countryMatch;
+            });
+        }
+
+        function aggregateData(data, groupBy, metric) {
+            const groups = {};
+            data.forEach(item => {
+                const key = item[groupBy];
+                if (!groups[key]) {
+                    groups[key] = {
+                        sum: 0,
+                        count: 0
+                    };
+                }
+                groups[key].sum += item[metric];
+                groups[key].count++;
+            });
+
+            const aggregated = {};
+            for (const key in groups) {
+                aggregated[key] = groups[key].sum / groups[key].count;
+            }
+            return aggregated;
+        }
+
+        function updateDashboard() {
+            const filteredData = getFilteredData();
+            updateKpis(filteredData);
+            updateCharts(filteredData);
+        }
+
+        function updateKpis(data) {
+            const feeData = aggregateData(data, 'PaymentGateway', 'TransactionFeeINR');
+            const settlementData = aggregateData(data, 'PaymentGateway', 'SettlementTimeDays');
+            const satisfactionData = aggregateData(data, 'PaymentGateway', 'CustomerSatisfaction');
+
+            const findBest = (aggData, compareFn) => {
+                if (Object.keys(aggData).length === 0) return { name: '-', value: '-' };
+                const best = Object.entries(aggData).reduce((a, b) => compareFn(a[1], b[1]) ? a : b);
+                return { name: best[0], value: best[1] };
+            };
+            
+            const lowestFee = findBest(feeData, (a, b) => a < b);
+            const fastestSettlement = findBest(settlementData, (a, b) => a < b);
+            const highestSatisfaction = findBest(satisfactionData, (a, b) => a > b);
+
+            document.getElementById('kpiLowestFee').textContent = lowestFee.name;
+            document.getElementById('kpiFastestSettlement').textContent = fastestSettlement.name;
+            document.getElementById('kpiHighestSatisfaction').textContent = highestSatisfaction.name;
+        }
+
+        function initializeCharts() {
+            const chartConfigs = {
+                feeChart: { type: 'bar', metric: 'TransactionFeeINR', title: 'Average Transaction Fee (INR)' },
+                settlementChart: { type: 'bar', metric: 'SettlementTimeDays', title: 'Average Settlement Time (Days)' },
+                satisfactionChart: { type: 'bar', metric: 'CustomerSatisfaction', title: 'Average Customer Satisfaction (1-5)' },
+                industryChart: { type: 'stackedBar', primaryDimension: 'Industry', secondaryDimension: 'PaymentGateway' },
+                countryChart: { type: 'stackedBar', primaryDimension: 'CountryOfOrigin', secondaryDimension: 'PaymentGateway' },
+                correlationChart: { type: 'scatter', xMetric: 'TransactionAmountINR', yMetric: 'TransactionFeeINR' }
+            };
+
+            for (const [id, config] of Object.entries(chartConfigs)) {
+                const ctx = document.getElementById(id).getContext('2d');
+                if (config.type === 'bar') {
+                    charts[id] = new Chart(ctx, {
+                        type: 'bar',
+                        data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderColor: [], borderWidth: 1 }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                    });
+                } else if (config.type === 'stackedBar') {
+                     charts[id] = new Chart(ctx, {
+                        type: 'bar',
+                        data: { labels: [], datasets: [] },
+                        options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true } } }
+                    });
+                } else if (config.type === 'scatter') {
+                    charts[id] = new Chart(ctx, {
+                        type: 'scatter',
+                        data: { datasets: [] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true } }, scales: { x: { type: 'linear', position: 'bottom', title: { display: true, text: 'Transaction Amount (INR)'} }, y: { title: { display: true, text: 'Transaction Fee (INR)'} } } }
+                    });
+                }
+            }
+        }
+        
+        function updateCharts(data) {
+            updateBarChart('feeChart', aggregateData(data, 'PaymentGateway', 'TransactionFeeINR'));
+            updateBarChart('settlementChart', aggregateData(data, 'PaymentGateway', 'SettlementTimeDays'));
+            updateBarChart('satisfactionChart', aggregateData(data, 'PaymentGateway', 'CustomerSatisfaction'));
+            updateStackedBarChart('industryChart', data, 'Industry', 'PaymentGateway');
+            updateStackedBarChart('countryChart', data, 'CountryOfOrigin', 'PaymentGateway');
+            updateScatterChart('correlationChart', data);
+        }
+
+        function updateBarChart(chartId, aggregatedData) {
+            const chart = charts[chartId];
+            const sortedData = Object.entries(aggregatedData).sort((a, b) => a[1] - b[1]);
+            chart.data.labels = sortedData.map(item => item[0]);
+            chart.data.datasets[0].data = sortedData.map(item => item[1].toFixed(2));
+            chart.data.datasets[0].backgroundColor = sortedData.map(item => gatewayColors[item[0]]);
+            chart.data.datasets[0].borderColor = sortedData.map(item => gatewayBorderColors[item[0]]);
+            chart.update();
+        }
+
+        function updateStackedBarChart(chartId, data, primaryDim, secondaryDim) {
+            const chart = charts[chartId];
+            const primaryLabels = [...new Set(data.map(item => item[primaryDim]))].sort();
+            const secondaryLabels = [...new Set(data.map(item => item[secondaryDim]))].sort();
+            
+            const counts = {};
+            primaryLabels.forEach(pLabel => {
+                counts[pLabel] = {};
+                secondaryLabels.forEach(sLabel => {
+                    counts[pLabel][sLabel] = 0;
+                });
+            });
+
+            data.forEach(item => {
+                counts[item[primaryDim]][item[secondaryDim]]++;
+            });
+
+            chart.data.labels = primaryLabels;
+            chart.data.datasets = secondaryLabels.map(sLabel => ({
+                label: sLabel,
+                data: primaryLabels.map(pLabel => counts[pLabel][sLabel]),
+                backgroundColor: gatewayColors[sLabel],
+                borderColor: gatewayBorderColors[sLabel],
+                borderWidth: 1
+            }));
+            chart.update();
+        }
+
+        function updateScatterChart(chartId, data) {
+            const chart = charts[chartId];
+            const gateways = [...new Set(data.map(item => item.PaymentGateway))];
+
+            chart.data.datasets = gateways.map(gateway => ({
+                label: gateway,
+                data: data.filter(item => item.PaymentGateway === gateway)
+                           .map(item => ({ x: item.TransactionAmountINR, y: item.TransactionFeeINR })),
+                backgroundColor: gatewayColors[gateway],
+                borderColor: gatewayBorderColors[gateway],
+                pointRadius: 5
+            }));
+            chart.update();
+        }
+
+    </script>
+</body>
+</html>
